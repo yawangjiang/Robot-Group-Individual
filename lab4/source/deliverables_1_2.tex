@@ -1,0 +1,168 @@
+\input{individual_style.tex}
+\hypersetup{pdftitle={MIT VNAV LAB4 - Individual Deliverables 1 and 2},pdfauthor={yawangjiang}}
+\begin{document}
+\begin{center}
+{\LARGE\bfseries\color{navy}LAB4: Trajectory Optimization}\par
+\vspace{6pt}
+{\large Individual Deliverables 1 and 2}\par
+\vspace{6pt}
+Submission account: \code{yawangjiang}\par
+October 31, 2026
+\end{center}
+
+\section{Deliverable 1: Single-Segment Optimization}
+The problem is to minimize $J=\int_0^1[P'(t)]^2\,dt$, with $P(0)=0$ and
+$P(1)=1$. Write $P(t)=\sum_{i=1}^n p_i t^i$, so that $p_0=0$ is eliminated.
+Then
+\begin{equation}
+J=\mathbf p^\top Q_n\mathbf p,\qquad
+(Q_n)_{ij}=\frac{ij}{i+j-1},\quad 1\leq i,j\leq n.
+\end{equation}
+The objective uses no factor $1/2$; a solver using
+$\frac12\mathbf p^\top H\mathbf p$ should receive $H=2Q_n$.
+
+\subsection{1. Degree One}
+For $P(t)=p_1t$, the final-position constraint gives $p_1=1$. Thus
+\begin{equation}
+\boxed{P(t)=t,\qquad J=1.}
+\end{equation}
+
+\subsection{2. Degree Two}
+For $\mathbf p=[p_1,p_2]^\top$,
+\begin{equation}
+Q_2=\begin{bmatrix}1&1\\1&4/3\end{bmatrix},\qquad
+A_2=\begin{bmatrix}1&1\end{bmatrix},\qquad b=1.
+\end{equation}
+In particular, $J=p_1^2+2p_1p_2+\frac43p_2^2$. Substituting
+$p_1=1-p_2$ yields $J=1+\frac13p_2^2$. Therefore
+\begin{equation}
+\boxed{\mathbf p^*=[1,0]^\top,\qquad P(t)=t,\qquad J^*=1.}
+\end{equation}
+Allowing the quadratic term does not reduce the optimum.
+
+\subsection{3. Degree Three and the Euler-Lagrange Result}
+For $\mathbf p=[p_1,p_2,p_3]^\top$,
+\begin{equation}
+Q_3=\begin{bmatrix}1&1&1\\1&4/3&3/2\\1&3/2&9/5\end{bmatrix},\qquad
+A_3=\begin{bmatrix}1&1&1\end{bmatrix},\qquad b=1.
+\end{equation}
+The minimizer is $\mathbf p^*=[1,0,0]^\top$, again giving $P(t)=t$ and $J^*=1$.
+Indeed, Cauchy-Schwarz gives
+\begin{equation}
+1=\left(\int_0^1P'(t)\,dt\right)^2\leq\int_0^1[P'(t)]^2\,dt.
+\end{equation}
+Equality holds for the constant derivative $P'=1$. This agrees with the
+Euler-Lagrange equation $P''=0$ and the two position boundary conditions.
+
+\clearpage
+\subsection{4. Add the Terminal-Velocity Constraint \texorpdfstring{$P'(1)=-2$}{P'(1)=-2}}
+The coefficient relation for this additional condition is
+$\sum_{i=1}^n i p_i=-2$. For each degree, solve
+\begin{equation}
+\min_{\mathbf p}\mathbf p^\top Q_n\mathbf p
+\quad\text{subject to}\quad A\mathbf p=\mathbf b.
+\end{equation}
+One direct method is the equality-constrained KKT system
+\begin{equation}
+\begin{bmatrix}2Q_n&A^\top\\A&0\end{bmatrix}
+\begin{bmatrix}\mathbf p\\\boldsymbol\lambda\end{bmatrix}
+=\begin{bmatrix}\mathbf0\\\mathbf b\end{bmatrix}.
+\end{equation}
+
+\subsubsection*{4(a). Degree Two}
+Use the same $Q_2$ and
+\begin{equation}
+A=\begin{bmatrix}1&1\\1&2\end{bmatrix},\qquad
+\mathbf b=\begin{bmatrix}1\\-2\end{bmatrix}.
+\end{equation}
+The constraints give $p_1+p_2=1$ and $p_1+2p_2=-2$, hence
+\begin{equation}
+\boxed{P(t)=4t-3t^2,\qquad J=\int_0^1(4-6t)^2\,dt=4.}
+\end{equation}
+There is only one feasible quadratic coefficient vector.
+
+\subsubsection*{4(b). Degree Three}
+Use $Q_3$ and
+\begin{equation}
+A=\begin{bmatrix}1&1&1\\1&2&3\end{bmatrix},\qquad
+\mathbf b=\begin{bmatrix}1\\-2\end{bmatrix}.
+\end{equation}
+Solving the KKT equations gives
+\begin{equation}
+\mathbf p^*=\begin{bmatrix}1/4\\9/2\\-15/4\end{bmatrix},\qquad
+\boxed{P(t)=\frac14t+\frac92t^2-\frac{15}{4}t^3,\qquad J^*=\frac{17}{8}.}
+\end{equation}
+The boundary values satisfy $P(0)=0$, $P(1)=1$, and
+$P'(1)=\frac14+9-\frac{45}{4}=-2$. Its cost is $17/8=2.125<4$, so the
+additional cubic freedom improves the constrained quadratic solution.
+
+\subsection*{Summary of Deliverable 1}
+\begin{center}\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Allowed degree and constraints & Optimal polynomial & Cost \\
+\midrule
+1, 2, or 3; endpoint positions only & $t$ & $1$ \\
+2; also $P'(1)=-2$ & $4t-3t^2$ & $4$ \\
+3; also $P'(1)=-2$ & $\frac14t+\frac92t^2-\frac{15}{4}t^3$ & $17/8$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\clearpage
+\section{Deliverable 2: Multi-Segment Optimization}
+Assume fixed, positive segment durations, specified waypoint positions, fixed
+derivatives through order $r-1$ at the two outer endpoints, and free derivatives
+of orders $1,\ldots,r-1$ at the internal waypoints. Counts below are per scalar
+coordinate. Independent spatial coordinates repeat the same calculation.
+
+\subsection{1. Minimum Snap: \texorpdfstring{$r=4$ and $k$}{r=4 and k} Segments}
+For $J=\sum_{i=1}^k\int[P_i^{(4)}(t)]^2\,dt$, the Euler-Lagrange equation is
+$P_i^{(8)}=0$. Each segment therefore has degree at most 7 and 8 coefficients,
+giving $8k$ unknown coefficients.
+
+Count the equations using the following disjoint categories:
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{35mm}c>{\raggedright\arraybackslash}X@{}}
+\toprule
+Category & Equations & Meaning \\
+\midrule
+Waypoint positions & $2k$ & Two endpoint position values for each segment, representing $k+1$ distinct geometric waypoints. \\
+Fixed nonzero-order derivatives & $6$ & Velocity, acceleration, and jerk at the overall start and finish. \\
+Free internal derivatives & $6(k-1)$ & Each of the three free derivatives at every internal waypoint yields continuity and a natural optimality equation. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+At an internal waypoint, freedom in derivatives $j=1,2,3$ gives, respectively,
+continuity of derivative orders $(1,6)$, $(2,5)$, and $(3,4)$. The second member
+of each pair is the natural stationarity condition obtained by integration by
+parts. Thus
+\begin{equation}
+2k+6+6(k-1)=8k.
+\end{equation}
+Equivalently, classify the internal positions separately: $2(k-1)$ internal
+position equations, 8 fixed endpoint conditions of orders 0 through 3, and
+$6(k-1)$ free-derivative equations. Endpoint positions must not be counted twice.
+
+\subsection{2. General Derivative Order \texorpdfstring{$r$}{r}}
+The Euler-Lagrange equation is $P_i^{(2r)}=0$, so each segment has degree at most
+$2r-1$ and $2r$ coefficients, for $2rk$ unknowns. Internal free derivative $j$
+gives continuity of order $j$ and the natural matching condition of order
+$2r-1-j$. Consequently
+\begin{equation}
+\boxed{2k+2(r-1)+2(r-1)(k-1)=2rk.}
+\end{equation}
+The three terms count waypoint positions, fixed outer derivatives of orders
+$1,\ldots,r-1$, and internal free-derivative continuity/optimality equations.
+The equivalent endpoint-inclusive count is
+$2(k-1)+2r+2(r-1)(k-1)=2rk$.
+
+For $r=4,k=3$, this gives $6+6+12=24$ equations for 24 coefficients. A free
+derivative is not an extra prescribed value: its equations follow from
+continuity and optimality. The highest derivative $2r-1$ may jump at a fixed
+internal position waypoint.
+
+\subsection*{Source}
+MIT VNAV LAB4 exercise statement:
+\url{https://vnav.mit.edu/labs_2023/lab4/exercises.html}.
+\end{document}
